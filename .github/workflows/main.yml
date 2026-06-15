@@ -24,6 +24,9 @@ jobs:
       - name: Build and test with Maven
         run: mvn clean verify --file simple-api/pom.xml
 
+      - name: Analyze with SonarCloud
+        run: mvn -B verify sonar:sonar -Dsonar.projectKey=youbway -Dsonar.organization=youbway -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_KEY }} --file ./simple-api/pom.xml
+
   # define job to build and publish docker image
   build-and-push-docker-image:
     needs: test-backend
@@ -63,4 +66,3 @@ jobs:
           context: ./http-server
           tags: ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-httpd:latest
           push: ${{ github.ref == 'refs/heads/main' }}
-
