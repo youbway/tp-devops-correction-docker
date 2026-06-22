@@ -19,18 +19,20 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: front
-        run: npm install --legacy-peer-deps --no-audit --no-fund
+        run: |
+          corepack enable
+          yarn install --no-lockfile --ignore-engines --non-interactive --registry https://registry.npmjs.org
 
       - name: Lint frontend
         working-directory: front
-        run: npm run lint
+        run: yarn lint
 
       - name: Build frontend
         working-directory: front
         env:
           VUE_APP_API_URL: ayoub.hellassa.takima.school/api
           NODE_OPTIONS: --openssl-legacy-provider
-        run: npm run build
+        run: yarn build
 
   test-backend: 
     runs-on: ubuntu-24.04
