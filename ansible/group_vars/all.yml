@@ -1,0 +1,13 @@
+---
+dockerhub_username: youppiway
+docker_image_tag: >-
+  {{ lookup('ansible.builtin.env', 'DOCKER_IMAGE_TAG') | default('latest', true) }}
+docker_network_name: app-network
+
+database_container_name: database
+app_container_name: simple-api
+proxy_container_name: httpd
+
+postgres_db: db
+postgres_user: usr
+postgres_password: "{{ lookup('ansible.builtin.env', 'POSTGRES_PASSWORD') }}"

@@ -1,0 +1,17 @@
+---
+- name: Run the Spring Boot API
+  community.docker.docker_container:
+    name: "{{ app_container_name }}"
+    image: >-
+      {{ dockerhub_username }}/tp-devops-simple-api:{{ docker_image_tag }}
+    state: started
+    pull: always
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ docker_network_name }}"
+    env:
+      DATABASE_HOST: "{{ database_container_name }}"
+      DATABASE_PASSWORD: "{{ postgres_password | string }}"
+  vars:
+    ansible_python_interpreter: /opt/docker_venv/bin/python
+  no_log: true

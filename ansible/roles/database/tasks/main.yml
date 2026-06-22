@@ -1,0 +1,27 @@
+---
+- name: Create the PostgreSQL data volume
+  community.docker.docker_volume:
+    name: postgres-data
+    state: present
+  vars:
+    ansible_python_interpreter: /opt/docker_venv/bin/python
+
+- name: Run the PostgreSQL database
+  community.docker.docker_container:
+    name: "{{ database_container_name }}"
+    image: >-
+      {{ dockerhub_username }}/tp-devops-database:{{ docker_image_tag }}
+    state: started
+    pull: always
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ docker_network_name }}"
+    env:
+      POSTGRES_DB: "{{ postgres_db | string }}"
+      POSTGRES_USER: "{{ postgres_user | string }}"
+      POSTGRES_PASSWORD: "{{ postgres_password | string }}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+  vars:
+    ansible_python_interpreter: /opt/docker_venv/bin/python
+  no_log: true

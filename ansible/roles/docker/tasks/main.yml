@@ -1,0 +1,51 @@
+---
+- name: Install prerequisite packages
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - python3
+      - python3-pip
+      - python3-venv
+      - python3-debian
+    state: present
+    update_cache: true
+
+- name: Configure Docker APT repository
+  ansible.builtin.deb822_repository:
+    name: docker
+    types:
+      - deb
+    uris: https://download.docker.com/linux/debian
+    suites:
+      - "{{ ansible_distribution_release }}"
+    components:
+      - stable
+    architectures:
+      - amd64
+    signed_by: https://download.docker.com/linux/debian/gpg
+    state: present
+
+- name: Install Docker packages
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+  notify: Restart Docker
+
+- name: Install Docker SDK in a virtual environment
+  ansible.builtin.pip:
+    name: docker
+    virtualenv: /opt/docker_venv
+    virtualenv_command: /usr/bin/python3 -m venv
+
+- name: Start and enable Docker
+  ansible.builtin.systemd_service:
+    name: docker
+    state: started
+    enabled: true

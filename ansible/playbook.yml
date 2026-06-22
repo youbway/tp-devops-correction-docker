@@ -1,0 +1,21 @@
+---
+- name: Deploy the application
+  hosts: all
+  gather_facts: true
+  become: true
+
+  pre_tasks:
+    - name: Check required deployment variables
+      ansible.builtin.assert:
+        that:
+          - postgres_password | length > 0
+          - docker_image_tag | length > 0
+        fail_msg: Required deployment variables are missing.
+      no_log: true
+
+  roles:
+    - docker
+    - network
+    - database
+    - app
+    - proxy

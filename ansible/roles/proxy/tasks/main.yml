@@ -1,0 +1,15 @@
+---
+- name: Run the HTTPD reverse proxy
+  community.docker.docker_container:
+    name: "{{ proxy_container_name }}"
+    image: >-
+      {{ dockerhub_username }}/tp-devops-httpd:{{ docker_image_tag }}
+    state: started
+    pull: always
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ docker_network_name }}"
+    ports:
+      - "80:80"
+  vars:
+    ansible_python_interpreter: /opt/docker_venv/bin/python
