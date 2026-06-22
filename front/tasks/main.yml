@@ -1,0 +1,13 @@
+---
+- name: Run the Vue frontend
+  community.docker.docker_container:
+    name: "{{ front_container_name }}"
+    image: >-
+      {{ dockerhub_username }}/tp-devops-front:{{ docker_image_tag }}
+    state: started
+    pull: always
+    restart_policy: unless-stopped
+    networks:
+      - name: "{{ docker_network_name }}"
+  vars:
+    ansible_python_interpreter: /opt/docker_venv/bin/python
