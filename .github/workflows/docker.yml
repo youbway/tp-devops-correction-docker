@@ -6,6 +6,9 @@ on:
     types: [completed]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   # define job to build and publish docker image
   build-and-push-docker-image:
@@ -30,19 +33,82 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./simple-api
-          tags: ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-simple-api:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:${{ github.event.workflow_run.head_sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
           push: true
 
       - name: Build image and push database
         uses: docker/build-push-action@v6
         with:
           context: ./database
-          tags: ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-database:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:${{ github.event.workflow_run.head_sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-database:latest
           push: true
 
       - name: Build image and push httpd
         uses: docker/build-push-action@v6
         with:
           context: ./http-server
-          tags: ${{secrets.DOCKERHUB_USERNAME}}/tp-devops-httpd:latest
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd:${{ github.event.workflow_run.head_sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd:latest
           push: true
+
+  deploy:
+    name: Deploy with Ansible
+    needs: build-and-push-docker-image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: production-deployment
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout the tested commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ansible/requirements.txt
+
+      - name: Install Ansible dependencies
+        run: |
+          python -m venv .ansible-venv
+          .ansible-venv/bin/pip install --disable-pip-version-check -r ansible/requirements.txt
+          .ansible-venv/bin/ansible-galaxy collection install -r ansible/requirements.yml
+
+      - name: Configure SSH authentication
+        shell: bash
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          SSH_PRIVATE_KEY_FILE: ${{ runner.temp }}/ansible-deploy-key
+        run: |
+          test -n "$SERVER_HOST"
+          test -n "$SSH_PRIVATE_KEY"
+          test -n "$SSH_KNOWN_HOSTS"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$SSH_PRIVATE_KEY_FILE"
+          chmod 600 "$SSH_PRIVATE_KEY_FILE"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Deploy the tested images
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SSH_PRIVATE_KEY_FILE: ${{ runner.temp }}/ansible-deploy-key
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DOCKER_IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+        run: >-
+          .ansible-venv/bin/ansible-playbook
+          -i ansible/inventories/production.yml
+          ansible/playbook.yml
