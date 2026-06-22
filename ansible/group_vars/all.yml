@@ -6,6 +6,7 @@ docker_network_name: app-network
 
 database_container_name: database
 app_container_name: simple-api
+front_container_name: front
 proxy_container_name: httpd
 
 postgres_db: db
