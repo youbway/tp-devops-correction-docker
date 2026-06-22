@@ -7,6 +7,31 @@ on:
     branches: [main, develop]
 
 jobs:
+  test-frontend:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        working-directory: front
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Lint frontend
+        working-directory: front
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: front
+        env:
+          VUE_APP_API_URL: /api
+          NODE_OPTIONS: --openssl-legacy-provider
+        run: npm run build
+
   test-backend: 
     runs-on: ubuntu-24.04
     steps:
@@ -25,5 +50,5 @@ jobs:
       - name: Build and test with Maven
         run: mvn clean verify --file simple-api/pom.xml
 
-     # - name: Analyze with SonarCloud
-       # run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar -Dsonar.projectKey=youbway -Dsonar.organization=youbway -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }} --file ./simple-api/pom.xml
+      - name: Analyze with SonarCloud
+        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:5.7.0.6970:sonar -Dsonar.projectKey=youbway -Dsonar.organization=youbway -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=${{ secrets.SONAR_TOKEN }} --file ./simple-api/pom.xml
