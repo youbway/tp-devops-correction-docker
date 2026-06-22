@@ -56,6 +56,15 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-httpd:latest
           push: true
 
+      - name: Build image and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./front
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-front:${{ github.event.workflow_run.head_sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-front:latest
+          push: true
+
   deploy:
     name: Deploy with Ansible
     needs: build-and-push-docker-image
